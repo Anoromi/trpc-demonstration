@@ -1,13 +1,8 @@
-import { Express, query } from "express"
-import { Types } from "mongoose"
-import { string, z } from "zod"
-import { requireAuth, requireToken } from "../../utils/auth"
-import { badDataError } from "../../utils/badData"
-import { objectIdSchema } from "../../utils/objectId"
-import { Session } from "../login/dao"
-import { NoteDao, NoteModel } from "./dao"
 import { TRPCError, initTRPC } from "@trpc/server"
+import { z } from "zod"
 import { Context } from "../../utils/context"
+import { objectIdSchema } from "../../utils/objectId"
+import { NoteDao } from "./dao"
 
 const t = initTRPC.context<Context>().create()
 

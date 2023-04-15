@@ -22,24 +22,13 @@ export const loginRouter = router({
 			const result = await new LoginDao().signup(req.input)
 
 			if (result.type === "err") return result.data
-            return null;
+			return null
 		}),
 	login: publicProcedure
 		.input(z.object({ username: z.string(), password: z.string() }))
 		.mutation(async (req) => {
-			// const { input } = req
-			// console.log(input)
-			// console.log("received")
-			// const loginData = userData.safeParse(input)
-			// if (!loginData.success) return "bad/user"
-
-			// const result = await new LoginDao().login(loginData.data)
-			// if (result.type === "err") return result.data
-			// return result.data
 			const result = await new LoginDao().login(req.input)
-			// if (result.type === "err") return result.data
-			// return result.data
-            return result;
+			return result
 		}),
 })
 
