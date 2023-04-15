@@ -10,3 +10,12 @@ export async function requireAuth(req: Request) : Promise<Session | "bad/user"> 
 
 	return session
 }
+
+export async function requireToken(token: string) : Promise<Session | "bad/user"> {
+	if (token === undefined) return "bad/user"
+
+	const session = await new LoginDao().isAuthenticated(token)
+	if (session === null) return "bad/user"
+
+	return session
+}

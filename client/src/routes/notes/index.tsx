@@ -17,6 +17,18 @@ const noteSchema = z.object({
 })
 type Note = z.infer<typeof noteSchema>
 
+// async function getNotes() {
+// 	const response = await throwOnBadUser(
+// 		await fetch(`${serverPath}/note`, {
+// 			headers: {
+// 				...getAuthorization(),
+// 			},
+// 		})
+// 	)
+//
+// 	return noteSchema.array().parse(await response.json())
+// }
+
 async function getNotes() {
 	const response = await throwOnBadUser(
 		await fetch(`${serverPath}/note`, {
