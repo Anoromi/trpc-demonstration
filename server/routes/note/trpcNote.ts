@@ -1,69 +1,72 @@
-import {Express, query} from "express"
-import {Types} from "mongoose"
-import {string, z} from "zod"
-import {requireAuth, requireToken} from "../../utils/auth"
-import {badDataError} from "../../utils/badData"
-import {objectIdSchema} from "../../utils/objectId"
-import {Session} from "../login/dao"
-import {NoteDao, NoteModel} from "./dao"
-import {initTRPC} from "@trpc/server";
+import { Express, query } from "express"
+import { Types } from "mongoose"
+import { string, z } from "zod"
+import { requireAuth, requireToken } from "../../utils/auth"
+import { badDataError } from "../../utils/badData"
+import { objectIdSchema } from "../../utils/objectId"
+import { Session } from "../login/dao"
+import { NoteDao, NoteModel } from "./dao"
+import { TRPCError, initTRPC } from "@trpc/server"
+import { Context } from "../../utils/context"
 
-const t = initTRPC.create();
+const t = initTRPC.context<Context>().create()
 
-export const router = t.router;
-export const publicProcedure = t.procedure;
+export const router = t.router
+export const publicProcedure = t.procedure
+
+const isAuthed = t.middleware(({ next, ctx }) => {
+	console.log("getting here")
+	if (ctx.user === null) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "bad/user",
+		})
+	}
+	return next({
+		ctx: {
+			// Infers the `session` as non-nullable
+			user: ctx.user,
+		},
+	})
+})
 
 export const noteRouter = router({
-    getNotes: publicProcedure
-        .input(z.object({token: z.string()}))
-        .query(async (req) => {
-            const {input} = req;
-            const auth: Session | "bad/user" = await requireToken(input.token)
+	getNotes: publicProcedure.use(isAuthed).query(async (req) => {
+		return await new NoteDao().getNotes(req.ctx.user.user)
+	}),
 
-            if (auth === "bad/user") return "bad/user"
+	addNote: publicProcedure
+		.use(isAuthed)
+		.input(z.object({ text: z.string() }))
+		.mutation(async (req) => {
+			console.log("dta")
+			new NoteDao().addNote({
+				user: req.ctx.user.user,
+				text: req.input.text,
+			})
+		}),
 
-            return await new NoteDao().getNotes(auth.user)
-        }),
+	editNote: publicProcedure
+		.use(isAuthed)
+		.input(z.object({ _id: objectIdSchema, text: z.string() }))
+		.mutation(async (req) => {
+			console.log("dta")
+			new NoteDao().editNote({
+				_id: req.input._id,
+				user: req.ctx.user.user,
+				text: req.input.text,
+			})
+		}),
 
-    addNote: publicProcedure
-        .input(z.object({token: z.string(), id : z.number()}))
-        .mutation(async (req) => {
-            const {input} = req;
-            const auth: Session | "bad/user" = await requireToken(input.token)
-            if (auth === "bad/user") return auth
-
-            console.log('dta')
-            const note = z
-                .object({
-                    text: z.string(),
-                })
-                .safeParse(input)
-
-            if (!note.success) return "bad/id"
-
-            await new NoteDao().addNote({
-                user: auth.user,
-                text: note.data.text,
-            })
-        }),
-
-    deleteNotes: publicProcedure
-        .input(z.object({token: z.string(), noteId : z.number()}))
-        .mutation(async (req) => {
-            const {input} = req;
-            const auth: Session | "bad/user" = await requireToken(input.token)
-            if (auth === "bad/user") return auth
-
-            const note = objectIdSchema.safeParse(input.noteId)
-            if (!note.success) return "bad/id"
-
-            console.log('maybe', auth.user, note.data)
-            await new NoteDao().removeNote({
-                user: auth.user,
-                _id: note.data,
-            })
-        })
-
-});
+	deleteNotes: publicProcedure
+		.use(isAuthed)
+		.input(z.object({ _id: objectIdSchema }))
+		.mutation(async (req) => {
+			await new NoteDao().removeNote({
+				user: req.ctx.user.user,
+				_id: req.input._id,
+			})
+		}),
+})
 
 export type NoteRouter = typeof noteRouter

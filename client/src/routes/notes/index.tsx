@@ -1,115 +1,39 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { z } from "zod"
-import {
-	authErrorCheck,
-	getAuthorization,
-	handleAuthError,
-	throwOnBadUser,
-} from "../../utils/auth"
-import { jsonHeader } from "../../utils/jsonHeader"
-import { serverPath } from "../../utils/serverPath"
+import { authErrorCheck } from "../../utils/auth"
+import { trpc } from "../../utils/trpc"
 
-const noteSchema = z.object({
-	_id: z.string(),
-	text: z.string(),
-})
-type Note = z.infer<typeof noteSchema>
-
-// async function getNotes() {
-// 	const response = await throwOnBadUser(
-// 		await fetch(`${serverPath}/note`, {
-// 			headers: {
-// 				...getAuthorization(),
-// 			},
-// 		})
-// 	)
-//
-// 	return noteSchema.array().parse(await response.json())
-// }
-
-async function getNotes() {
-	const response = await throwOnBadUser(
-		await fetch(`${serverPath}/note`, {
-			headers: {
-				...getAuthorization(),
-			},
-		})
-	)
-
-	return noteSchema.array().parse(await response.json())
-}
-
-async function addNote(data: { text: string }) {
-	throwOnBadUser(
-		await fetch(`${serverPath}/note`, {
-			headers: {
-				...getAuthorization(),
-				...jsonHeader,
-			},
-			method: "post",
-			body: JSON.stringify(data),
-		})
-	)
-}
-
-async function editNote(data: { _id: string; text: string }) {
-	throwOnBadUser(
-		await fetch(`${serverPath}/note/${data._id}`, {
-			headers: {
-				...getAuthorization(),
-				...jsonHeader,
-			},
-			method: "put",
-			body: JSON.stringify(data),
-		})
-	)
-}
-
-async function deleteNote(data: { _id: string }) {
-	throwOnBadUser(
-		await fetch(`${serverPath}/note/${data._id}`, {
-			headers: {
-				...getAuthorization(),
-			},
-			method: "delete",
-		})
-	)
+type Note = {
+	_id: string
+	text: string
 }
 
 export default function Notes() {
+	const utils = trpc.useContext()
+
 	const client = useQueryClient()
-	const items = useQuery({
-		queryKey: ["note"],
-		queryFn: getNotes,
+	const items = trpc.getNotes.useQuery(undefined, {
 		useErrorBoundary: authErrorCheck,
 	})
 
-	const addNoteMutation = useMutation({
-		mutationFn: addNote,
-		mutationKey: ["note"],
+	const addNoteMutation = trpc.addNote.useMutation({
 		useErrorBoundary: authErrorCheck,
-		onSettled() {
-			client.invalidateQueries(["note"])
+		onSuccess() {
+			utils.getNotes.invalidate()
 		},
 	})
 
-	const editNoteMutation = useMutation({
-		mutationFn: editNote,
-		mutationKey: ["note"],
+	const editNoteMutation = trpc.editNote.useMutation({
 		useErrorBoundary: authErrorCheck,
-		onSettled() {
-			client.invalidateQueries(["note"])
+		onSuccess() {
+			utils.getNotes.invalidate()
 		},
 	})
 
-	const deleteNoteMutation = useMutation({
-		mutationFn: deleteNote,
-		mutationKey: ["note"],
+	const deleteNoteMutation = trpc.deleteNotes.useMutation({
 		useErrorBoundary: authErrorCheck,
-		onSettled() {
-			client.invalidateQueries(["note"])
+		onSuccess() {
+			utils.getNotes.invalidate()
 		},
 	})
 

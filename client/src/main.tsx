@@ -8,6 +8,8 @@ import Login from "./routes/login"
 import { Signup } from "./routes/login/signup"
 import Notes from "./routes/notes"
 import { validateAuth } from "./utils/auth"
+import { trpc } from "./utils/trpc"
+import { App } from "./App"
 
 const router = createBrowserRouter([
 	{
@@ -34,8 +36,8 @@ const queryClient = new QueryClient()
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 	<React.StrictMode>
-		<QueryClientProvider client={queryClient}>
+		<App>
 			<RouterProvider router={router} />
-		</QueryClientProvider>
+		</App>
 	</React.StrictMode>
 )
